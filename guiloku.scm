@@ -11,7 +11,7 @@
 ;;       The vectors are not copied here, which is a problem
 (define (mark-cell row col player game)
   (let ((cell (cons col player))
-        (new-game (list-copy game)))
+        (new-game (copy-tree game)))
     (let ((sel-row (vector-ref (cdr (list-ref new-game 2)) row)))
       (vector-set! sel-row col player))
     new-game))
