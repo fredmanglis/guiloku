@@ -1,6 +1,6 @@
 (define (init-rows size)
-  (let ((col (make-vector 15 0)))
-    (make-vector 15 (vector-copy col))))
+  (let ((col (make-vector size 0)))
+    (make-vector size (vector-copy col))))
 
 (define  (init-game size)
   (list (cons "size" size)
