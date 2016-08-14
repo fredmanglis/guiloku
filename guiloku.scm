@@ -7,11 +7,12 @@
         (cons "turn" 0)
         (cons "board" (init-rows size))))
 
-;; TODO: Update so that this does a deep-copy
-;;       The vectors are not copied here, which is a problem
 (define (mark-cell row col player game)
   (let ((cell (cons col player))
-        (new-game (copy-tree game)))
+        (new-game (copy-tree game))
+        (success #t))
     (let ((sel-row (vector-ref (cdr (list-ref new-game 2)) row)))
-      (vector-set! sel-row col player))
-    new-game))
+      (if (= (vector-ref sel-row col) 0)
+          (vector-set! sel-row col player)
+          (set! success #f)))
+    (values new-game success)))
