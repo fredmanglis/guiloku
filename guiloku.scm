@@ -1,55 +1,60 @@
 (use-modules (sly)
+             (sly game)
              (sly signal)
              (sly math vector)
              (sly math rect)
              (sly render camera)
              (sly render color)
+             (sly render font)
              (sly render sprite)
              (sly input mouse)
+             (srfi srfi-1)
+             (srfi srfi-9)
              (srfi srfi-26)
              (ice-9 match))
 
 ;; Game definition
-(define (init-rows size)
-  (let ((col (make-vector size 0)))
-    (make-vector size (vector-copy col))))
-
-(define  (init-game size starting-player)
-  (list (cons "size" size)
-        (cons "turn" starting-player)
-        (cons "board" (init-rows size))))
-
-(define (get-next-player game)
-  (let ((curr (assoc-ref game "turn")))
-    (cond
-     ((= curr 0) 1)
-     ((= curr 1) 2)
-     ((= curr 2) 1))))
-
-(define (mark-cell position game)
-  (let ((new-game (copy-tree game))
-        (success #t)
-        (row (vy position))
-        (col (vx position)))
-    (if (or (< row 0)
-            (< col 0))
-        (set! success #f)
-        (let ((sel-row (vector-ref (cdr (list-ref new-game 2)) row))
-              (player (assoc-ref new-game "turn")))
-          (if (= (vector-ref sel-row col) 0)
-              (let ((next-player (get-next-player new-game)))
-                (vector-set! sel-row col player)
-                (set! new-game (assoc-set! new-game "turn" next-player)))
-              (set! success #f))))
-    (values new-game success)))
+(define-record-type <cell>
+  (make-cell owned? position)
+  cell?
+  (owned? owned? set-owned!)
+  (position position))
 
 ;; The UI
 (sly-init)
+(enable-fonts)
 
-(define resolution (vector2 640 480))
+(define font (load-default-font))
+
+(define resolution (vector2 800 600))
 (define cell-size 32)
 
+(define-signal player1-owned (list))
+(define-signal player2-owned (list))
 (define-signal board-size 15)
+(define-signal player-turn 'player-none)
+
+(define (mark-cell position board)
+  (let ((row (vy position))
+        (col (vx position))
+        (owner (signal-ref player-turn)))
+    (display "Mark cell in row ") (display row) (display ", col ") (display col) (newline)
+    (if (and (>= row 0)
+             (>= col 0)
+             (< row (signal-ref board-size))
+             (< col (signal-ref board-size)))
+        (let ((cell (make-cell* col row owner)))
+          (display cell) (display owner) (newline)
+          (add-cell-to-player cell owner)
+          (set! board
+            (list-replace board row
+                          (list-replace (list-ref board row) col cell)))
+          (update-player-turn)))
+    board))
+
+;; Lifted out of sly/examples/mines.scm
+(define (list-replace lst k value)
+  (append (take lst k) (cons value (drop lst (1+ k)))))
 
 ;; Lifted out of sly/examples/mines.scm
 (define-signal center-position
@@ -59,14 +64,12 @@
 
 ;; Lifted out of sly/examples/mines.scm
 (define (enumerate-map proc lst)
-  (let ((ls (vector->list (assoc-ref (signal-ref lst) "board"))))
-    (define (iter k ls)
-      (match ls
-        (() '())
-        ((x . rest)
-         (cons (proc x k) (iter (1+ k) rest)))))
-
-    (iter 0 lst)))
+  (define (iter k ls)
+    (match ls
+      (() '())
+      ((x . rest)
+       (cons (proc x k) (iter (1+ k) rest)))))
+  (iter 0 lst))
 
 (define go-white
   (load-sprite "images/go_white.png"))
@@ -78,14 +81,39 @@
   (load-sprite "images/base.png"))
 
 (define (cell-overlay-sprite cell)
-  (cond
-        ((= cell 1) go-black)
-        ((= cell 2) go-white)
-        (else #f)))
+  (let ((sprite #nil))
+    (cond
+     ((member cell (signal-ref player1-owned)) (set! sprite go-black))
+     ((member cell (signal-ref player2-owned)) (set! sprite go-white)))
+    (cond
+     ((eq? sprite go-white) (display "white"))
+     ((eq? sprite go-black) (display "black")))
+    (newline)
+    sprite))
+
+(define (add-cell-to-player cell owner)
+  (let ((sig-to-update (cond
+                        ((eq? owner 'player1) player1-owned)
+                        ((eq? owner 'player2) player2-owned))))
+    (signal-set! sig-to-update (append (signal-ref sig-to-update) (list cell)))))
+
+(define (make-cell* x y owner)
+  (let* ((owned (not (null? owner)))
+         (cell (make-cell owned (vector2 x y))))
+    (if owned
+        (add-cell-to-player cell owner))
+    cell))
+
+(define (init-row size y)
+  (list-tabulate size (lambda (x)
+                        (make-cell* x y #nil))))
+
+(define (make-board size)
+  (list-tabulate size (lambda (y) (init-row size y))))
 
 (define-signal cell-position
   (signal-let ((p mouse-position)
-               (size board-size)
+               (size (make-signal board-size))
                (center center-position))
               (vmap floor (v* (v- p center) (/ 1 cell-size)))))
 
@@ -94,13 +122,26 @@
          (signal-filter (cut eq? 'left <>) #f)
          (signal-sample-on cell-position)))
 
+(define (update-player-turn)
+  (signal-let ((turn player-turn))
+              (cond
+               ((eq? turn 'player-none)
+                (signal-set! player-turn 'player1))
+               ((eq? turn 'player1)
+                (signal-set! player-turn 'player2))
+               ((eq? turn 'player2)
+                (signal-set! player-turn 'player1)))))
+
 (define-signal command
   (signal-merge
    (make-signal 'null)
-   (signal-map (cut list 'place-stone <>) stone-pos)))
+   (signal-map (cut list 'place-stone <>) stone-pos)
+   (signal-constant 'restart (key-down? 'n))))
 
 (define (start-game)
-  (init-game 15 1))
+  (signal-set! player-turn 'player-none)
+  (update-player-turn)
+  (make-board (signal-ref board-size)))
 
 (define-signal board
   (signal-fold (lambda (op board)
@@ -111,10 +152,10 @@
                (start-game)
                command))
 
-
 (define render-cell
   (let ((offset (vector2 (/ cell-size 2) (/ cell-size 2))))
     (lambda (cell)
+      ;(display "Rendering...") (display cell) (newline)
       (render-begin
        (render-sprite cell-base-sprite)
        (let ((overlay (cell-overlay-sprite cell)))
@@ -125,6 +166,7 @@
 (define-signal board-view
   (signal-let ((board board))
               (define (render-column cell x)
+                ;(display "Rendering col ") (display x) (newline)
                 (move (vector2 (* x cell-size) 0)
                       (render-cell cell)))
 
@@ -132,11 +174,22 @@
                 (move (vector2 0 (* y cell-size))
                       (list->renderer (enumerate-map render-column row))))
 
-              (list->renderer (enumerate-map render-row (make-signal board)))))
+              (list->renderer (enumerate-map render-row board))))
 
 (define camera
   (2d-camera #:area (make-rect (vector2 0 0) resolution)
              #:clear-color black))
+
+(define (render-message message)
+  (move (vector2 (/ (vx resolution) 2)
+                 (- (vy resolution) 64))
+        (render-sprite
+         (make-label font message #:anchor 'center))))
+
+(define-signal status-message
+  (let ((game-over (render-message "GAME OVER - Press N to play again"))
+        (you-win   (render-message "YOU WIN! - Press N to play again")))
+    game-over))
 
 (define-signal scene
   (signal-let ((view board-view)
