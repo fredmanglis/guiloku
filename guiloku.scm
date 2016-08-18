@@ -38,7 +38,6 @@
   (let ((row (vy position))
         (col (vx position))
         (owner (signal-ref player-turn)))
-    (display "Mark cell in row ") (display row) (display ", col ") (display col) (newline)
     (if (and (>= row 0)
              (>= col 0)
              (< row (signal-ref board-size))
@@ -150,7 +149,6 @@
 (define render-cell
   (let ((offset (vector2 (/ cell-size 2) (/ cell-size 2))))
     (lambda (cell)
-      ;(display "Rendering...") (display cell) (newline)
       (render-begin
        (move offset (render-sprite cell-base-sprite))
        (let ((overlay (cell-overlay-sprite cell)))
@@ -161,7 +159,6 @@
 (define-signal board-view
   (signal-let ((board board))
               (define (render-column cell x)
-                ;(display "Rendering col ") (display x) (newline)
                 (move (vector2 (* x cell-size) 0)
                       (render-cell cell)))
 
