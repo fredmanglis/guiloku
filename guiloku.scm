@@ -44,7 +44,6 @@
              (< row (signal-ref board-size))
              (< col (signal-ref board-size)))
         (let ((cell (make-cell* col row owner)))
-          (display cell) (display owner) (newline)
           (add-cell-to-player cell owner)
           (set! board
             (list-replace board row
@@ -85,10 +84,6 @@
     (cond
      ((member cell (signal-ref player1-owned)) (set! sprite go-black))
      ((member cell (signal-ref player2-owned)) (set! sprite go-white)))
-    (cond
-     ((eq? sprite go-white) (display "white"))
-     ((eq? sprite go-black) (display "black")))
-    (newline)
     sprite))
 
 (define (add-cell-to-player cell owner)
@@ -157,7 +152,7 @@
     (lambda (cell)
       ;(display "Rendering...") (display cell) (newline)
       (render-begin
-       (render-sprite cell-base-sprite)
+       (move offset (render-sprite cell-base-sprite))
        (let ((overlay (cell-overlay-sprite cell)))
          (if overlay
              (move offset (render-sprite overlay))
