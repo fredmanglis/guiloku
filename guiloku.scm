@@ -42,12 +42,15 @@
              (>= col 0)
              (< row (signal-ref board-size))
              (< col (signal-ref board-size)))
-        (let ((cell (make-cell* col row owner)))
-          (add-cell-to-player cell owner)
-          (set! board
-            (list-replace board row
-                          (list-replace (list-ref board row) col cell)))
-          (update-player-turn)))
+        (let ((cell (make-cell* col row owner))
+              (orig-cell (list-ref (list-ref board row) col)))
+          (if (not (owned? orig-cell))
+              (begin (add-cell-to-player cell owner)
+                     (set! board
+                       (list-replace board row
+                                     (list-replace
+                                      (list-ref board row) col cell)))
+                     (update-player-turn)))))
     board))
 
 ;; Lifted out of sly/examples/mines.scm
@@ -94,8 +97,6 @@
 (define (make-cell* x y owner)
   (let* ((owned (not (null? owner)))
          (cell (make-cell owned (vector2 x y))))
-    (if owned
-        (add-cell-to-player cell owner))
     cell))
 
 (define (init-row size y)
@@ -179,9 +180,10 @@
          (make-label font message #:anchor 'center))))
 
 (define-signal status-message
-  (let ((game-over (render-message "GAME OVER - Press N to play again"))
-        (you-win   (render-message "YOU WIN! - Press N to play again")))
-    game-over))
+  (let ((player1-wins (render-message "GAME OVER - Player 1 wins! Press N to play again"))
+        (player2-wins (render-message "GAME OVER - Player 2 wins! Press N to play again"))
+        (offset (vector2 (/ cell-size 2) (/ cell-size 2))))
+    (move offset player1-wins)))
 
 (define-signal scene
   (signal-let ((view board-view)
