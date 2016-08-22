@@ -1,3 +1,5 @@
+(define-module (guiloku))
+
 (use-modules (sly)
              (sly game)
              (sly signal)
@@ -108,7 +110,7 @@
 
 (define-signal cell-position
   (signal-let ((p mouse-position)
-               (size (make-signal board-size))
+               (size board-size)
                (center center-position))
               (vmap floor (v* (v- p center) (/ 1 cell-size)))))
 
