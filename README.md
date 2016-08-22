@@ -20,16 +20,16 @@ Guiloku is an implementation of Gomoku in [Guile](https://www.gnu.org/software/g
 Guiloku depends on:
 
 * [Guile][guile]
-* [sly][sly]
+* [Sly][sly]
 
 ## Installing and Running
 
-1. Install [guix](https://www.gnu.org/software/guix/)
-2. Clone [sly][sly]
+1. Install [GNU Guix](https://www.gnu.org/software/guix/) - I recommend the binary installation
+2. Clone [Sly][sly] `git clone git://dthompson.us/sly.git`
 3. Change directory into sly: `cd /path/to/sly`
-4. Build and install [sly][sly]
+4. Build and install [Sly][sly]
 	* Set up build environment: `guix environment -l guix.scm`
-	* bootstrap build environment and configure:`./bootstrap && ./configure`
+	* bootstrap build environment and configure: `./bootstrap && ./configure`
 	* Build sly: `guix build -f guix.scm`
 	* Install sly: `guix install -f guix.scm`
 5. Clone guiloku: `git clone git@github.com:fredmanglis/guiloku.git`
@@ -41,22 +41,31 @@ Guiloku depends on:
 **Note**: _Annotations in red do not appear in actual screens_
 
 On launch:
+
 ![Initial screen on launching guiloku](docs/screenshots/launch_screen.png)
 
 2 moves in:
+
 ![Stones for players 1 and 2 shown](docs/screenshots/players_stones.png)
 
 And a win whenever there are 5 consecutive stones:
+
 ![Player 2 wins](docs/screenshots/player2_wins.png)
 
-## TODOs
+## Direction
 
-- [x] Make the game playable
+The intention is to implement a simple game of Gomoku, for fun and also to learn both [GNU Guile][guile] and [Sly][sly]
+
+It is also meant to teach me how to use the [GNU Guix][guix] package manager
+
+I intend to add/implement some of the following features and fixes:
+
+- [x] Make the game playable manually
 - [ ] Fix failure caused by pressing 'n' to start new game
-- [ ] Implement automatic game completion and scoring functionality
+- [ ] Implement automatic game completion when a player gets 5 consecutive stones
 - [ ] Implement updates to status messages
+- [ ] Add theming
 
 
 [guile]:https://www.gnu.org/software/guile/
-
 [sly]:https://dthompson.us/projects/sly.html
