@@ -24,7 +24,7 @@ Guiloku depends on:
 
 ## Installing and Running
 
-1. Install [GNU Guix](https://www.gnu.org/software/guix/) - I recommend the binary installation
+1. Install [GNU Guix][guix] - I recommend the binary installation
 2. Clone [Sly][sly] `git clone git://dthompson.us/sly.git`
 3. Change directory into sly: `cd /path/to/sly`
 4. Build and install [Sly][sly]
@@ -70,3 +70,4 @@ I intend to add/implement some of the following features and fixes:
 
 [guile]:https://www.gnu.org/software/guile/
 [sly]:https://dthompson.us/projects/sly.html
+[guix]:https://www.gnu.org/software/guix/
