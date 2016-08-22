@@ -61,10 +61,11 @@ It is also meant to teach me how to use the [GNU Guix][guix] package manager
 I intend to add/implement some of the following features and fixes:
 
 - [x] Make the game playable manually
+- [ ] Figure out the entire flow of signals and how they are updated
 - [ ] Fix failure caused by pressing 'n' to start new game
 - [ ] Implement automatic game completion when a player gets 5 consecutive stones
 - [ ] Implement updates to status messages
-- [ ] Add theming
+- [ ] Add theming (background and go-stones)
 
 
 [guile]:https://www.gnu.org/software/guile/
