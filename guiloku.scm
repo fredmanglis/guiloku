@@ -34,26 +34,46 @@
 (define-signal player1-owned (list))
 (define-signal player2-owned (list))
 (define-signal board-size 15)
-(define-signal player-turn 'player-none)
 
-(define (mark-cell position board)
-  (let ((row (vy position))
-        (col (vx position))
-        (owner (signal-ref player-turn)))
-    (if (and (>= row 0)
-             (>= col 0)
-             (< row (signal-ref board-size))
-             (< col (signal-ref board-size)))
-        (let ((cell (make-cell* col row owner))
-              (orig-cell (list-ref (list-ref board row) col)))
-          (if (not (owned? orig-cell))
-              (begin (add-cell-to-player cell owner)
-                     (set! board
-                       (list-replace board row
-                                     (list-replace
-                                      (list-ref board row) col cell)))
-                     (update-player-turn)))))
-    board))
+(define (is-correct-range row col size)
+  (and (>= row 0)
+       (>= col 0)
+       (< row size)
+       (< col size)))
+
+(define (mark-cell position board turn)
+  (signal-let ((board board)
+               (owner turn)
+               (size board-size))
+              (let ((row (vy position))
+                    (col (vx position)))
+                (if (is-correct-range row col size)
+                    (let ((cell (make-cell* col row owner))
+                          (orig-cell (list-ref (list-ref board row) col)))
+                      (if (not (owned? orig-cell))
+                          (begin (add-cell-to-player cell owner)
+                                 (update-player-turn)
+                                 (list-replace board row
+                                               (list-replace
+                                                (list-ref board row) col cell)))))))
+              board))
+  ;; (let ((row (vy position))
+  ;;       (col (vx position))
+  ;;       (owner (signal-ref player-turn)))
+  ;;   (if (and (>= row 0)
+  ;;            (>= col 0)
+  ;;            (< row (signal-ref board-size))
+  ;;            (< col (signal-ref board-size)))
+  ;;       (let ((cell (make-cell* col row owner))
+  ;;             (orig-cell (list-ref (list-ref board row) col)))
+  ;;         (if (not (owned? orig-cell))
+  ;;             (begin (add-cell-to-player cell owner)
+  ;;                    (set! board
+  ;;                      (list-replace board row
+  ;;                                    (list-replace
+  ;;                                     (list-ref board row) col cell)))
+  ;;                    (update-player-turn)))))
+  ;;   board))
 
 ;; Lifted out of sly/examples/mines.scm
 (define (list-replace lst k value)
@@ -119,16 +139,6 @@
          (signal-filter (cut eq? 'left <>) #f)
          (signal-sample-on cell-position)))
 
-(define (update-player-turn)
-  (signal-let ((turn player-turn))
-              (cond
-               ((eq? turn 'player-none)
-                (signal-set! player-turn 'player1))
-               ((eq? turn 'player1)
-                (signal-set! player-turn 'player2))
-               ((eq? turn 'player2)
-                (signal-set! player-turn 'player1)))))
-
 (define-signal command
   (signal-merge
    (make-signal 'null)
@@ -136,18 +146,55 @@
    (signal-constant 'restart (key-down? 'n))))
 
 (define (start-game)
-  (signal-set! player-turn 'player-none)
-  (update-player-turn)
   (make-board (signal-ref board-size)))
 
 (define-signal board
-  (signal-fold (lambda (op board)
+  (signal-fold
+   (signal-let ((turn player-turn))
+               (define (board-update op board)
                  (match op
                    ('null board)
                    ('restart (start-game))
-                   (('place-stone p) (mark-cell p board))))
-               (start-game)
-               command))
+                   (('place-stone p) (mark-cell p board turn))))
+               board-update)
+   (start-game)
+   command))
+
+(define (update-player-turn position pturn board)
+  (signal-let ((board board)
+               (turn pturn)
+               (size board-size))
+              (let ((row (vy position))
+                    (col (vx position)))
+                (if (is-correct-range row col size)
+                    (let ((cell (list-ref (list-ref board row) col)))
+                      (if (owned? cell)
+                          turn
+                          (cond
+                           ((eq? turn 'player1) 'player2)
+                           ((eq? turn 'player2) 'player1))))
+                    turn))))
+
+(define-signal player-turn
+  (signal-fold
+   (signal-let ((board board))
+               (define (player-turn-update op player-turn)
+                 (display op)
+                 (match op
+                   ('null player-turn)
+                   ('restart 'player1)
+                   (('place-stone p) (update-player-turn p player-turn board))))
+               player-turn-update)
+   'player1
+   command))
+  ;; (signal-let ((turn player-turn))
+  ;;             (cond
+  ;;              ((eq? turn 'player-none)
+  ;;               (signal-set! player-turn 'player1))
+  ;;              ((eq? turn 'player1)
+  ;;               (signal-set! player-turn 'player2))
+  ;;              ((eq? turn 'player2)
+  ;;               (signal-set! player-turn 'player1)))))
 
 (define render-cell
   (let ((offset (vector2 (/ cell-size 2) (/ cell-size 2))))
